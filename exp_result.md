@@ -14,6 +14,7 @@
 |------|-----|
 | 任务 | 模加法 $(a + b) \mod 97$ |
 | 模型 | 2 层 Transformer, hidden_dim=128, 4 heads |
+| **参数量** | **~430K**（Embedding 25K + Transformer 393K + Output 12K） |
 | 训练集比例 | 30% |
 | 优化器 | AdamW |
 | 学习率 | 1e-3 |
