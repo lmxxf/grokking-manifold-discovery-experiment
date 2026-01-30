@@ -1,0 +1,56 @@
+{
+  "seeds": [
+    1001,
+    1002,
+    1003
+  ],
+  "results": [
+    {
+      "seed": 1001,
+      "first_grok_step": 9000,
+      "oscillation_count": 13,
+      "final_test_acc": 1.0
+    },
+    {
+      "seed": 1002,
+      "first_grok_step": 10000,
+      "oscillation_count": 20,
+      "final_test_acc": 0.29133141035372706
+    },
+    {
+      "seed": 1003,
+      "first_grok_step": 9000,
+      "oscillation_count": 16,
+      "final_test_acc": 1.0
+    }
+  ],
+  "statistics": {
+    "first_grok_step": {
+      "values": [
+        9000,
+        10000,
+        9000
+      ],
+      "mean": 9333.333333333334,
+      "std": 471.4045207910317
+    },
+    "oscillation_count": {
+      "values": [
+        13,
+        20,
+        16
+      ],
+      "mean": 16.333333333333332,
+      "std": 2.8674417556808756
+    },
+    "final_test_acc": {
+      "values": [
+        1.0,
+        0.29133141035372706,
+        1.0
+      ],
+      "mean": 0.7637771367845757,
+      "std": 0.33406957690185757
+    }
+  }
+}

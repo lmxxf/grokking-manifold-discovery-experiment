@@ -1,0 +1,160 @@
+{
+  "step": 100000,
+  "p": 97,
+  "g": 5,
+  "operation": "multiplication",
+  "num_cosets": 12,
+  "adjacency_score": 1.0,
+  "random_baseline": 0.16666666666666666,
+  "distribution": {
+    "2_correct": 12,
+    "1_correct": 0,
+    "0_correct": 0
+  },
+  "neighbor_details": [
+    {
+      "coset": 0,
+      "nearest_neighbors": [
+        1,
+        11
+      ],
+      "expected_neighbors": [
+        11,
+        1
+      ],
+      "correct": 2
+    },
+    {
+      "coset": 1,
+      "nearest_neighbors": [
+        0,
+        2
+      ],
+      "expected_neighbors": [
+        0,
+        2
+      ],
+      "correct": 2
+    },
+    {
+      "coset": 2,
+      "nearest_neighbors": [
+        3,
+        1
+      ],
+      "expected_neighbors": [
+        1,
+        3
+      ],
+      "correct": 2
+    },
+    {
+      "coset": 3,
+      "nearest_neighbors": [
+        2,
+        4
+      ],
+      "expected_neighbors": [
+        2,
+        4
+      ],
+      "correct": 2
+    },
+    {
+      "coset": 4,
+      "nearest_neighbors": [
+        3,
+        5
+      ],
+      "expected_neighbors": [
+        3,
+        5
+      ],
+      "correct": 2
+    },
+    {
+      "coset": 5,
+      "nearest_neighbors": [
+        6,
+        4
+      ],
+      "expected_neighbors": [
+        4,
+        6
+      ],
+      "correct": 2
+    },
+    {
+      "coset": 6,
+      "nearest_neighbors": [
+        5,
+        7
+      ],
+      "expected_neighbors": [
+        5,
+        7
+      ],
+      "correct": 2
+    },
+    {
+      "coset": 7,
+      "nearest_neighbors": [
+        6,
+        8
+      ],
+      "expected_neighbors": [
+        6,
+        8
+      ],
+      "correct": 2
+    },
+    {
+      "coset": 8,
+      "nearest_neighbors": [
+        7,
+        9
+      ],
+      "expected_neighbors": [
+        7,
+        9
+      ],
+      "correct": 2
+    },
+    {
+      "coset": 9,
+      "nearest_neighbors": [
+        10,
+        8
+      ],
+      "expected_neighbors": [
+        8,
+        10
+      ],
+      "correct": 2
+    },
+    {
+      "coset": 10,
+      "nearest_neighbors": [
+        9,
+        11
+      ],
+      "expected_neighbors": [
+        9,
+        11
+      ],
+      "correct": 2
+    },
+    {
+      "coset": 11,
+      "nearest_neighbors": [
+        0,
+        10
+      ],
+      "expected_neighbors": [
+        10,
+        0
+      ],
+      "correct": 2
+    }
+  ]
+}

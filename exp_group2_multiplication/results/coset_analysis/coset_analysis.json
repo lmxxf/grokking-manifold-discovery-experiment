@@ -1,0 +1,6 @@
+{
+  "primitive_root": 5,
+  "step": 100000,
+  "n_samples": 6452,
+  "n_valid": 6452
+}

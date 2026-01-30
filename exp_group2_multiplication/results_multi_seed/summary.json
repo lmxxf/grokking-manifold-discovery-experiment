@@ -1,0 +1,57 @@
+{
+  "operation": "multiplication",
+  "seeds": [
+    1001,
+    1002,
+    1003
+  ],
+  "results": [
+    {
+      "seed": 1001,
+      "first_grok_step": 13000,
+      "oscillation_count": 14,
+      "final_test_acc": 0.33292002479851207
+    },
+    {
+      "seed": 1002,
+      "first_grok_step": 10000,
+      "oscillation_count": 17,
+      "final_test_acc": 0.9996900185988841
+    },
+    {
+      "seed": 1003,
+      "first_grok_step": 10000,
+      "oscillation_count": 12,
+      "final_test_acc": 0.9893056416615003
+    }
+  ],
+  "statistics": {
+    "first_grok_step": {
+      "values": [
+        13000,
+        10000,
+        10000
+      ],
+      "mean": 11000.0,
+      "std": 1414.213562373095
+    },
+    "oscillation_count": {
+      "values": [
+        14,
+        17,
+        12
+      ],
+      "mean": 14.333333333333334,
+      "std": 2.0548046676563256
+    },
+    "final_test_acc": {
+      "values": [
+        0.33292002479851207,
+        0.9996900185988841,
+        0.9893056416615003
+      ],
+      "mean": 0.7739718950196322,
+      "std": 0.3118995810516105
+    }
+  }
+}
