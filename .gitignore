@@ -1,10 +1,6 @@
 # Large files (activations, model weights)
-results/activations/
-results/*.pt
-
-# Keep figures and analysis results
-# !results/*.png
-# !results/*.json
+*.npz
+*.pt
 
 # Python
 __pycache__/
