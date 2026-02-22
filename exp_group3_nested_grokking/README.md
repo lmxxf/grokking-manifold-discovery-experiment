@@ -91,10 +91,14 @@ step       outer_s1  inner_s4  解读
 1000000    0.000     0.562     最终状态（震荡剧烈）
 ```
 
-### wd=2.0，5M 步趋势（截至 3.7M 步，仍在运行）
+### wd=2.0，5M 步（已完成）
 
-inner_s4 没有锁定，也没有被 Z₃ 夺舍。stride=4 和 stride=1 在交替闪烁，模型在永久震荡。
-期间经历了一次完全崩溃（step ~3.56M，test_acc 降至 3.4%）后恢复。
+最终 train_acc=78.2%，test_acc=73.4%——**彻底退化**。
+
+WD=2.0 在超长训练下是非单调的：先逼出结构（100k 步 Grok），再摧毁结构（3.56M 步崩溃后无法恢复）。
+inner_s4 没有锁定，stride=4 和 stride=1 交替闪烁直到模型死亡。
+
+**结论：weight decay 存在最优训练长度，过了就是毒药。**
 
 ## C.C. 的解读（Gemini 3.0 Pro）
 
@@ -104,11 +108,33 @@ inner_s4 没有锁定，也没有被 Z₃ 夺舍。stride=4 和 stride=1 在交�
 
 3. **PCA 瞬态骤降到 4-6 维**：是流形在寻找新稳定点时的"窄门"，螺旋管结构露头的瞬间。
 
+## 第三轮实验：容量是瓶颈吗？
+
+### 实验 C：big_model（4 层 256 维 8 头，wd=2.0，1M 步）—— 运行中
+
+如果小模型夺舍是因为容量不足，那加大模型应该能让两层拓扑共存。
+
+| | 小模型 | 大模型 |
+|---|---|---|
+| layers | 2 | 4 |
+| hidden_dim | 128 | 256 |
+| heads | 4 | 8 |
+| 参数量 | ~10 万 | ~80 万 |
+
+**判定标准**：outer（stride=1 或 2）和 inner_s4 同时维持 >0.5 = 容量假说成立。
+
+```bash
+# 看进度
+sudo docker exec magical_bhabha bash -c "tail -5 /tmp/nested_big.log"
+
+# 跑完后分析
+sudo docker exec magical_bhabha bash -c "cd /workspace/ai-theorys-study/arxiv/wechat67/exp_group3_nested_grokking/code && python scan_strides.py --tag big_model"
+```
+
 ## 未解决的问题
 
-1. **容量实验**：4 层 256 维下，两层拓扑能否同时稳定？
-2. **任务选择**：换一个 gcd=1 的分解（如 mod 91 = 7×13），两层结构是否天然正交、更容易被发现？
-3. **WD 调度**：先用高 WD 逼出结构，再降低 WD 让它稳定，能否避免永久震荡？
+1. **任务选择**：换一个 gcd=1 的分解（如 mod 91 = 7×13），两层结构是否天然正交、更容易被发现？
+2. **WD 调度**：先用高 WD 逼出结构，再降低 WD 让它稳定，能否避免永久震荡？
 
 ## 跑法
 
@@ -140,6 +166,7 @@ exp_group3_nested_grokking/
     ├── wd_1.0/                       # 没完全 Grok（89.6%）
     ├── wd_1.5/                       # 外层 stride=1 先涌现后崩溃，内层 stride=4 接管
     ├── wd_2.0/                       # 外层 stride=2 先涌现后崩溃，内层 stride=4 接管
-    ├── wd2.0_5M/                     # 5M 步：不收敛，永久震荡
-    └── wd_5.0/                       # 过度压缩（77.7%）
+    ├── wd2.0_5M/                     # 5M 步：彻底退化（73.4%）
+    ├── wd_5.0/                       # 过度压缩（77.7%）
+    └── big_model/                    # 第三轮：4层256维，容量验证（运行中）
 ```
