@@ -1,0 +1,16 @@
+{
+  "p": 97,
+  "train_ratio": 0.3,
+  "embed_dim": 256,
+  "num_heads": 8,
+  "num_layers": 4,
+  "lr": 0.001,
+  "weight_decay": 2.0,
+  "batch_size": 512,
+  "total_steps": 1000000,
+  "eval_every": 5000,
+  "save_activations_every": 10000,
+  "seed": 42,
+  "output_dir": "/workspace/ai-theorys-study/arxiv/wechat67/exp_group3_nested_grokking/results/big_model",
+  "operation": "multiplication"
+}

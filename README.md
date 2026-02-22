@@ -6,7 +6,7 @@ Verifying the core predictions of the paper "Grokking as Manifold Discovery".
 
 **Core Hypothesis / 核心假说**：Grokking = a topological phase transition from high-dimensional jagged curves to low-dimensional manifolds / 从高维锯齿曲线到低维流形的拓扑相变
 
-**Paper Link / 论文链接**：[Zenodo](https://zenodo.org/records/18388631)
+**Paper Link / 论文链接**：[Zenodo](https://zenodo.org/records/18731171)
 
 **Detailed Experiment Results / 详细实验结果**：[exp_result.md](exp_result.md)
 
@@ -88,9 +88,13 @@ The Z₁₂ coset structure discovered in Group 2 raises a question: the 8 eleme
 
 实验组2 发现的 Z₁₂ 陪集结构引出一个问题：每个陪集内部的 8 个元素（Z₈）是死记硬背的。更长的训练和更强的正则化能不能逼模型也发现 Z₈ 的内部结构？
 
-**Result / 结果**: Not nested emergence, but **topological possession** — the outer Z₁₂ structure collapses and is replaced by inner stride=4 structure. The model cannot stably maintain two levels of topology simultaneously at this capacity (2-layer, 128-dim).
+**Result / 结果**: Not nested emergence, but **topological possession** — the outer Z₁₂ structure collapses and is replaced by inner stride=4 structure. The small model (2-layer, 128-dim) cannot stably maintain two levels of topology simultaneously.
 
-**结果**：不是嵌套涌现，而是**拓扑夺舍**——外层 Z₁₂ 结构坍塌后被内层 stride=4 结构取代。在当前容量（2层128维）下，模型无法同时稳定维持两层拓扑。
+**结果**：不是嵌套涌现，而是**拓扑夺舍**——外层 Z₁₂ 结构坍塌后被内层 stride=4 结构取代。小模型（2层128维）无法同时稳定维持两层拓扑。
+
+**Scaling experiment / 扩容实验**: A larger model (4-layer, 256-dim, ~800K params) with the same WD=2.0 **failed to Grok** (test_acc=51.75%). The model briefly touched perfect topology at steps 360K (outer_s1=1.0) and 380K (inner_s4=1.0), but could not stabilize either. Conclusion: simply increasing capacity without matching regularization pressure does not help — the optimization landscape becomes too flat.
+
+**扩容实验**：更大的模型（4层256维，约80万参数）在相同 WD=2.0 下**未能 Grok**（test_acc=51.75%）。模型在 360K 步（outer_s1=1.0）和 380K 步（inner_s4=1.0）瞬间触碰到完美拓扑，但无法稳定。结论：单纯加大容量而不匹配正则化压力无效——优化地形变得过于平坦。
 
 **Details / 详情**：[exp_group3_nested_grokking/README.md](exp_group3_nested_grokking/README.md)
 

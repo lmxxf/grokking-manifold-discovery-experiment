@@ -2,7 +2,7 @@
 
 **Authors**: Jin Yanyan (lmxxf@hotmail.com), Zhao Lei (zhaosanshi@gmail.com)
 
-**Abstract**: Grokking—the phenomenon where neural networks suddenly generalize after prolonged overfitting—has accumulated multiple theoretical explanations since its discovery in 2022: Goldilocks Zone, Softmax Collapse, Lazy-Rich transition, etc. This paper reviews these theories and identifies their common blind spot: **most focus on external measurements, lacking direct characterization of representation space geometry**. Among them, the Goldilocks Zone theory touches on the "physical laws" of high-dimensional space and carries substantial theoretical value. We propose a unified framework—the **Manifold Discovery Hypothesis**: memorization is a high-dimensional jagged curve passing through all training points, generalization is discovering the low-dimensional manifold on which data is distributed, and Grokking is the transition from the former to the latter (possibly accompanied by critical state oscillations). **We provide evidence supporting this hypothesis on two experimental groups: modular addition and modular multiplication**: we observed significant drops in effective dimensionality of representations (78$\to$8 / 89$\to$11 under PCA 95% threshold), order-of-magnitude changes in topological summaries, and emergence of cluster structures in dimensionality-reduced visualizations. Notably, the modular multiplication experiment discovered that the model learned quotient group structure $(k \bmod 12)$ cosets, purity 99.4%), which prompted us to revise the hypothesis into a **two-stage model**: local manifold discovery $\to$ global gluing. In one sentence: **high-dimensional curve $\to$ low-dimensional surface**.
+**Abstract**: Grokking—the phenomenon where neural networks suddenly generalize after prolonged overfitting—has accumulated multiple theoretical explanations since its discovery in 2022: Goldilocks Zone, Softmax Collapse, Lazy-Rich transition, etc. This paper reviews these theories and identifies their common blind spot: **most focus on external measurements, lacking direct characterization of representation space geometry**. Among them, the Goldilocks Zone theory touches on the "physical laws" of high-dimensional space and carries substantial theoretical value. We propose a unified framework—the **Manifold Discovery Hypothesis**: memorization is a high-dimensional jagged curve passing through all training points, generalization is discovering the low-dimensional manifold on which data is distributed, and Grokking is the transition from the former to the latter (possibly accompanied by critical state oscillations). **We provide evidence supporting this hypothesis on two experimental groups: modular addition and modular multiplication**: we observed significant drops in effective dimensionality of representations (78$\to$8 / 89$\to$11 under PCA 95% threshold), order-of-magnitude changes in topological summaries, and emergence of cluster structures in dimensionality-reduced visualizations. Notably, the modular multiplication experiment discovered that the model learned quotient group structure ($(k \bmod 12)$ cosets, purity 99.4%), which prompted us to revise the hypothesis into a **two-stage model**: local manifold discovery $\to$ global gluing. Furthermore, **nested Grokking experiments** reveal the nature of capacity-topology competition: a small model (2-layer, 128-dim) under strong regularization undergoes **topological possession**—the outer $\mathbb{Z}_{12}$ structure is replaced by inner stride=4 structure (test_acc=100% throughout), while scaling up to 4-layer, 256-dim causes the model to fail to Grok entirely (test_acc=51.75%), demonstrating that capacity and regularization pressure must be matched. In one sentence: **high-dimensional curve $\to$ low-dimensional surface**.
 
 ---
 
@@ -702,6 +702,118 @@ We used 3 additional seeds (1001, 1002, 1003) to verify reproducibility of core 
 
 **Core conclusion**: **The manifold discovery hypothesis is validated on both operations**, but the "depth" and "quality" of discovery differ—modular addition discovered the complete cyclic group structure but lost topological adjacency, modular multiplication only discovered quotient group structure but perfectly preserved ring topology.
 
+### 6.9 Experiment Group 3: Nested Grokking—Topological Possession and the Capacity Hypothesis
+
+#### 6.9.1 Motivation
+
+Section 6.4 found that the modular multiplication model learned $\mathbb{Z}_{12}$ quotient group structure (12 cosets, adjacency score 100%), but the 8 elements inside each coset ($\mathbb{Z}_8$ substructure) were memorized by rote. **Can stronger regularization and longer training force the model to also discover $\mathbb{Z}_8$'s internal structure?**
+
+#### 6.9.2 Experimental Configuration
+
+| Parameter | Small model (baseline) | Large model (scaled) |
+|-----------|------------------------|----------------------|
+| Task | $(a \times b) \bmod 97$ | Same |
+| Layers | 2 | 4 |
+| Hidden dim | 128 | 256 |
+| Attention heads | 4 | 8 |
+| Parameters | ~100K | ~800K |
+| Weight decay | 1.0 / 1.5 / 2.0 / 5.0 | 2.0 |
+| Total steps | 1M (some 5M) | 1M |
+
+**Analysis tool**: `scan_strides.py`—checks adjacency scores at stride=1/2/4 separately for the outer layer (12 cosets) and inner layer (8 elements per coset). Stride is "step size": stride=1 means standard ring (0→1→2→...→11→0), stride=2 means every-other-hop (evens in one loop, odds in another), stride=4 means every-fourth-hop. Stride≠1 means the model chose a compressed topological encoding.
+
+#### 6.9.3 Finding 1: Topological Possession
+
+Regardless of WD strength (as long as Grokking was triggered), the outer $\mathbb{Z}_{12}$ structure eventually collapsed and was replaced by inner stride=4 structure. **test_acc=100% throughout**—the model's output remained correct while its internal representation underwent complete reorganization.
+
+**Timeline for wd=2.0** (key steps excerpted):
+
+| Step | outer_s2 | inner_s4 | PCA dim | Interpretation |
+|------|----------|----------|---------|----------------|
+| 20,000 | **1.000** | 0.115 | 13 | Outer stride=2 locked |
+| 100,000 | 1.000 | 0.208 | 11 | Inner signal emerging |
+| 140,000 | 0.583 | 0.000 | 6 | **Turning point**, PCA plummets |
+| 200,000 | 0.083 | 0.542 | 13 | Inner takes off |
+| 860,000 | 0.000 | **0.896** | 12 | Inner peak |
+| 1,000,000 | 0.083 | 0.844 | 15 | Final (still oscillating) |
+
+**Timeline for wd=1.5**: Outer chose stride=1 (standard large ring), survived to ~350K steps before collapse, similarly replaced by inner stride=4.
+
+**Conclusion**: The small model's capacity (~100K parameters) is insufficient to simultaneously maintain two levels of topological structure, forcing a binary choice—first learns the outer layer (coarse classification is easier), later gets possessed by the inner layer (stride=4 encoding is more efficient).
+
+#### 6.9.4 Finding 2: WD Determines Topology Selection
+
+| WD | Outer topology choice | Interpretation |
+|----|-----------------------|----------------|
+| 1.5 | stride=1 (12-step standard large ring) | Moderate WD pressure, model can afford precise structure |
+| 2.0 | stride=2 (two 6-step small rings) | Heavy WD pressure, chooses lossy compression—splits into two sub-rings, reducing weight coupling |
+
+Stride=2 splits $\mathbb{Z}_{12}$ into two $\mathbb{Z}_6$ sub-rings (evens in one loop, odds in another), representing the model's **spontaneous symmetry breaking** under WD pressure.
+
+#### 6.9.5 Finding 3: Inner Layer Always Chooses stride=4 = gcd(12,8)
+
+Regardless of whether the outer layer chose stride=1 or stride=2, the inner layer always converged to stride=4.
+
+$4 = \gcd(12, 8)$—the outer layer cycles every 12 steps, the inner every 8 steps, and every 4 steps both layers' phases align. This is the mathematically shortest path for encoding both layers of information with the same set of weights. The model autonomously discovered this number-theoretic structure.
+
+#### 6.9.6 Finding 4: WD Non-Monotonicity—Extended Training Is Poison
+
+wd=2.0 extended from 1M to 5M steps:
+
+| Training steps | train_acc | test_acc | Status |
+|----------------|-----------|----------|--------|
+| 1M | 100% | 100% | Sweet spot |
+| 3.56M | — | 3.4% | Collapse |
+| 5M | 78.2% | 73.4% | Permanent degradation |
+
+**Weight Decay first forces structure to emerge (Grokking), then destroys it (over-compression).** An optimal training length exists; beyond it, WD becomes poison.
+
+#### 6.9.7 WD Phase Diagram
+
+| WD | test_acc (1M steps) | Behavior |
+|----|---------------------|----------|
+| 1.0 | 89.6% | No Grok, mostly memorization |
+| 1.5 | 100% | Grok, outer s1→350K collapse→inner s4 takes over |
+| 2.0 | 100% | Grok, outer s2→140K collapse→inner s4 takes over |
+| 5.0 | 77.7% | Over-compression, can't even memorize |
+
+The stronger the WD, the faster the outer layer dies (350K → 140K), but the final outcome is the same—only inner stride=4 survives.
+
+#### 6.9.8 Finding 5: Scaling Experiment—Simple Capacity Hypothesis Does Not Hold
+
+If topological possession is due to insufficient capacity, then scaling the model by 8x (4-layer, 256-dim, ~800K parameters) should allow two topological levels to coexist.
+
+**Result**: train_acc=56.4%, test_acc=51.75%—**couldn't even fit the training set, let alone Grok.**
+
+Key scan_strides data:
+
+| Step | outer_s1 | inner_s4 | Interpretation |
+|------|----------|----------|----------------|
+| 360,000 | **1.000** | 0.000 | Outer s1 perfect flash (survived only 10K steps) |
+| 380,000 | 0.000 | **1.000** | Inner s4 perfect flash (survived only 10K steps) |
+| 400,000+ | 0.000 | 0.1-0.4 | Complete collapse, aimless drifting |
+| 1,000,000 | 0.000 | 0.177 | Final: no stable topology |
+
+**Comparison with small model**:
+
+| | Small model (2L, 128d) | Large model (4L, 256d) |
+|---|---|---|
+| test_acc | 100% | 51.75% |
+| Outer lock duration | 100-350K steps | Only 10K steps (360K flash) |
+| Inner stable score | 0.5-0.9 | No stability (drifting) |
+| Final topology | Inner stride=4 stable | No stable topology |
+
+**Conclusion**:
+
+Not "bigger house enables coexistence," but "bigger house can't find the walls."
+
+- Small model: Low capacity → WD=2.0 effectively constrains → forces structure → possession
+- Large model: High capacity → WD=2.0 pressure is relatively insufficient → parameter space too large, optimization landscape too flat → no topology can stabilize
+
+The large model momentarily touched perfect topology at steps 360K and 380K (outer_s1=1.0 and inner_s4=1.0), indicating the target structure **exists** in the solution space, but the optimizer cannot find a stable path to it.
+
+**Conjecture**: Capacity and regularization pressure must be matched—the large model likely needs much stronger WD (e.g., 5.0-10.0) to force structure emergence. This is consistent with findings from the Epiplexity learnability experiments: bigger ≠ better, unless pressure is simultaneously increased.
+
 ---
 
 ## 7. Discussion
@@ -754,18 +866,32 @@ In the modular multiplication experiment, the model only learned $k \bmod 12$ (c
 
 Modular addition critical point 8-16 dim, modular multiplication 16-32 dim. This matches intuition: multiplicative group structure is more complex (has non-trivial subgroups), needs more dimensions to encode.
 
+**5. Topological Possession: Topology Competition Under Capacity Constraints**
+
+The nested Grokking experiment revealed a new phenomenon: when model capacity is insufficient to simultaneously maintain two topological levels, instead of coexistence, **topological possession** occurs—the later-learned structure replaces the earlier-learned one, while output remains unchanged throughout. This shows:
+- Representation space structure can undergo complete reorganization while output remains perfectly unchanged
+- **test_acc=100% does not mean the model's internal understanding is stable**—beneath the same accuracy, entirely different topological organizations may exist
+- Manifold discovery is not a unidirectional "bad to good" process, but dynamic competition among multiple topological candidate solutions
+
+**6. Capacity-Regularization Matching Principle**
+
+The failure of the scaling experiment (4-layer, 256-dim, test_acc=51.75%) overturns the naive intuition that "bigger is better." The large model momentarily touched perfect topology at step 360K then immediately collapsed, showing the target solution **exists** in parameter space, but the optimization landscape is too flat for the optimizer to find a stable path. This suggests a **matching principle**: capacity and regularization pressure must be jointly tuned—increasing capacity alone without increasing constraints is like giving a bigger house with no furniture; the structure is actually less organized than what was forced out of the smaller house.
+
 ### 7.4 Limitations and Future Directions
 
 Limitations of this paper:
 1. **Limited task scope**: Only validated on modular addition and multiplication, unclear if applicable to other Grokking tasks (like permutation groups, polynomial evaluation)
-2. **Two-stage model pending verification**: Will modular multiplication's "global gluing" occur with longer training?
+2. **Two-stage model pending verification**: Will modular multiplication's "global gluing" occur with longer training? (Nested Grokking experiments show: extended training + increased WD does not lead to global gluing, but rather topological possession, and at 5M steps the structure is destroyed entirely)
 3. **64-dimension anomaly pending explanation**: Currently only intuitive explanation, lacking rigorous theory
+4. **Quantitative laws of capacity-regularization matching**: How much WD does a large model need to force structure? Does a scaling law like $\text{WD} \propto \sqrt{\text{parameters}}$ exist?
 
 Future directions:
-1. Validate two-stage model on more tasks
+1. Validate two-stage model and topological possession phenomenon on more tasks
 2. Explore whether Grokking can be controlled by manipulating representation space topology
 3. Study the mathematical mechanism of 64-dimension anomaly
-4. Verify whether extended training allows modular multiplication to complete "global gluing"
+4. **Joint capacity-regularization sweep**: Systematically search the 2D phase diagram of model size and WD, looking for the critical curve from "possession" to "coexistence"
+5. **Switch to gcd=1 tasks** (e.g., mod 91 = 7×13), verify whether two-level structures are more easily discovered simultaneously when naturally orthogonal
+6. **Reproducibility of topological flashing**: Is the large model's momentary perfect topology at 360K/380K steps coincidental or a necessary waypoint? Can it be reproduced across multiple seeds?
 
 ---
 
@@ -798,7 +924,13 @@ Based on experimental findings, we revised the hypothesis into a **two-stage mod
 
 Modular addition completed both stages, modular multiplication only completed the first stage—this explains why modular multiplication learned quotient group structure rather than the complete multiplicative group.
 
-**In one sentence: high-dimensional curve $\to$ oscillation $\to$ low-dimensional surface (success rate ~67%, possibly in two steps).**
+**Nested Grokking experiments** further revealed:
+- **Topological possession**: When capacity is insufficient to encode multiple structural levels simultaneously, the model completely replaces its internal topology while maintaining test_acc=100%
+- **WD non-monotonicity**: Regularization first forces structure, then destroys it; an optimal training length exists
+- **Inner layer walks gcd**: The model autonomously discovers $\gcd(12,8)=4$ as the shortest path for simultaneously encoding both layers of information
+- **Capacity-regularization matching principle**: Simply increasing capacity (8x parameters) not only failed to achieve topological coexistence, but caused Grok failure entirely (test_acc=51.75%). Capacity and regularization pressure must be jointly tuned
+
+**In one sentence: high-dimensional curve $\to$ oscillation $\to$ low-dimensional surface (success rate ~67%, possibly in two steps; under capacity constraints, multi-level structures undergo topological competition).**
 
 ---
 
