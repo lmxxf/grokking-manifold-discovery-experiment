@@ -84,17 +84,17 @@ python train_multi_seed.py    # 多 seed 稳定性验证
 
 ## Experiment Group 3: Nested Grokking / 实验组3：嵌套 Grokking
 
-The Z₁₂ coset structure discovered in Group 2 raises a question: the 8 elements inside each coset (Z₈) are memorized, not generalized. Can longer training and stronger regularization force the model to discover Z₈'s internal structure too?
+**Core discovery / 核心发现**: A model can maintain 100% test accuracy while its internal representation undergoes complete reorganization. The "brain" changes but the behavior doesn't.
 
-实验组2 发现的 Z₁₂ 陪集结构引出一个问题：每个陪集内部的 8 个元素（Z₈）是死记硬背的。更长的训练和更强的正则化能不能逼模型也发现 Z₈ 的内部结构？
+**核心发现**：模型可以在测试准确率始终 100% 的情况下，内部表示发生完全重组。"脑子"换了一遍，但行为纹丝不动。
 
-**Result / 结果**: Not nested emergence, but **topological possession** — the outer Z₁₂ structure collapses and is replaced by inner stride=4 structure. The small model (2-layer, 128-dim) cannot stably maintain two levels of topology simultaneously.
+Group 2 discovered that the model learns Z₁₂ coset structure but memorizes the 8 elements within each coset (Z₈). We increased Weight Decay to force deeper learning. What happened: not nested emergence, but **topological possession** — under WD pressure, the outer Z₁₂ structure collapses and is replaced by a stride=4 encoding (= gcd(12,8)). The model autonomously discovers this mathematical shortcut. Throughout this internal revolution, test accuracy stays at 100%.
 
-**结果**：不是嵌套涌现，而是**拓扑夺舍**——外层 Z₁₂ 结构坍塌后被内层 stride=4 结构取代。小模型（2层128维）无法同时稳定维持两层拓扑。
+实验组2 发现模型学会了 Z₁₂ 陪集结构，但每个陪集内部的 8 个元素（Z₈）是死记硬背的。我们加大 Weight Decay 逼它继续学。结果：不是嵌套涌现，而是**拓扑夺舍**——在 WD 压力下，外层 Z₁₂ 结构坍塌，被 stride=4 编码（= gcd(12,8)）取代。模型自主发现了这条数学捷径。在整个内部革命过程中，测试准确率始终 100%。
 
-**Scaling experiment / 扩容实验**: A larger model (4-layer, 256-dim, ~800K params) with the same WD=2.0 **failed to Grok** (test_acc=51.75%). The model briefly touched perfect topology at steps 360K (outer_s1=1.0) and 380K (inner_s4=1.0), but could not stabilize either. Conclusion: simply increasing capacity without matching regularization pressure does not help — the optimization landscape becomes too flat.
+**Scaling experiment / 扩容实验**: A larger model (4-layer, 256-dim, ~800K params) with the same WD=2.0 **failed to Grok** (test_acc=51.75%). The model briefly touched perfect topology at steps 360K (outer_s1=1.0) and 380K (inner_s4=1.0), but could not stabilize either. Conclusion: capacity and regularization pressure must match — a bigger house without enough gravity grows no galaxies.
 
-**扩容实验**：更大的模型（4层256维，约80万参数）在相同 WD=2.0 下**未能 Grok**（test_acc=51.75%）。模型在 360K 步（outer_s1=1.0）和 380K 步（inner_s4=1.0）瞬间触碰到完美拓扑，但无法稳定。结论：单纯加大容量而不匹配正则化压力无效——优化地形变得过于平坦。
+**扩容实验**：更大的模型（4层256维，约80万参数）在相同 WD=2.0 下**未能 Grok**（test_acc=51.75%）。模型在 360K 步（outer_s1=1.0）和 380K 步（inner_s4=1.0）瞬间触碰到完美拓扑，但无法稳定。结论：容量和正则化压力必须匹配——没有重力的大房子，长不出星系。
 
 **Details / 详情**：[exp_group3_nested_grokking/README.md](exp_group3_nested_grokking/README.md)
 
