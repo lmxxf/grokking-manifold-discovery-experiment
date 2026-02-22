@@ -82,6 +82,20 @@ python train_multi_seed.py    # 多 seed 稳定性验证
 
 ---
 
+## Experiment Group 3: Nested Grokking / 实验组3：嵌套 Grokking
+
+The Z₁₂ coset structure discovered in Group 2 raises a question: the 8 elements inside each coset (Z₈) are memorized, not generalized. Can longer training and stronger regularization force the model to discover Z₈'s internal structure too?
+
+实验组2 发现的 Z₁₂ 陪集结构引出一个问题：每个陪集内部的 8 个元素（Z₈）是死记硬背的。更长的训练和更强的正则化能不能逼模型也发现 Z₈ 的内部结构？
+
+**Result / 结果**: Not nested emergence, but **topological possession** — the outer Z₁₂ structure collapses and is replaced by inner stride=4 structure. The model cannot stably maintain two levels of topology simultaneously at this capacity (2-layer, 128-dim).
+
+**结果**：不是嵌套涌现，而是**拓扑夺舍**——外层 Z₁₂ 结构坍塌后被内层 stride=4 结构取代。在当前容量（2层128维）下，模型无法同时稳定维持两层拓扑。
+
+**Details / 详情**：[exp_group3_nested_grokking/README.md](exp_group3_nested_grokking/README.md)
+
+---
+
 ## Directory Structure / 目录结构
 
 ```
@@ -92,7 +106,10 @@ python train_multi_seed.py    # 多 seed 稳定性验证
 ├── exp_group1_addition/         # 实验组1：模加法
 │   ├── code/                    # 实验代码
 │   └── results/                 # 实验结果和图表
-└── exp_group2_multiplication/   # 实验组2：模乘法
+├── exp_group2_multiplication/   # 实验组2：模乘法
+│   ├── code/                    # 实验代码
+│   └── results/                 # 实验结果和图表
+└── exp_group3_nested_grokking/  # 实验组3：嵌套 Grokking / 拓扑夺舍
     ├── code/                    # 实验代码
-    └── results/                 # 实验结果和图表
+    └── results/                 # 多档 WD 对比结果
 ```
