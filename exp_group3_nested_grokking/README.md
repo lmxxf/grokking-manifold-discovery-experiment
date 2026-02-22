@@ -9,44 +9,61 @@ wechat67 实验发现：模乘法 (a×b) mod 97 的模型学到了 Z₁₂ 商�
 ## 实验设计
 
 - 模型：2 层 Transformer，hidden_dim=128，4 heads（和 wechat67 一致）
-- 训练步数：150k → **1M**
-- Weight Decay 三档对比：1.0、2.0、5.0
-- 每 10k 步保存激活，分析外层 Z₁₂ 和内层 Z₈ 的邻接得分
+- 训练步数：1M / 5M
+- Weight Decay 四档对比：1.0、1.5、2.0、5.0
+- 每 10k 步保存激活
+- 分析工具：`scan_strides.py`（多步长邻接扫描，检测 stride=1/2/4 的非标准环结构）
 
-## 第一轮结果（1M 步）
+## 总结论
 
-### Weight Decay 对比
+### 1. 拓扑夺舍是必然的
 
-| wd | 最终 train_acc | 最终 test_acc | 状态 |
-|----|---------------|--------------|------|
-| 1.0 | 95.7% | 89.6% | 没完全 Grok |
-| **2.0** | **100%** | **100%** | **唯一的甜蜜点** |
-| 5.0 | 83.2% | 77.7% | 过度压缩，植物人 |
+不管 WD 多少（只要在能 Grok 的区间内），外层结构最终都会被内层 stride=4 取代：
 
-### 关键发现：stride ≠ 1，gcd(12,8)=4 的扭转是真的
+| wd | 外层初始拓扑 | 外层死亡时间 | 内层 stride=4 趋势 |
+|----|-------------|------------|-------------------|
+| 1.5 | stride=1（标准环，100%） | ~350k 步 | 震荡上升到 ~0.7-0.9 |
+| 2.0 | stride=2（Z₆×Z₆，100%） | ~140k 步 | 震荡上升到 ~0.84 |
 
-原始实验（wechat67, wd=1.0）中 Z₁₂ 的邻接是标准 stride=1 环。但 wd=2.0 下，模型选择了**非标准步长**：
+**WD 越强，外层死得越快，但最终结局相同。**
 
-- **外层 Z₁₂**：stride=2 邻接 = 100%（偶数和奇数各自成 Z₆ 环）
-- **内层 Z₈**：stride=4 邻接从 0 涌现到 0.84
+### 2. stride 由 gcd(12,8)=4 决定
 
-两个步长（2 和 4）都是 gcd(12,8)=4 的因子。模型没有选循环群的标准生成元，而是选了**公约数的因子**作为步长——在 128 维空间里，这些子群结构更容易被线性变换编码。
+模型选择的步长不是循环群的标准生成元，而是 gcd=4 的因子：
+- 外层：wd=2.0 选 stride=2，wd=1.5 选 stride=1
+- 内层：都走 stride=4（gcd 本身）
 
-### 核心发现：不是嵌套涌现，是拓扑夺舍
+### 3. 超长训练不会锁定，反而走向混沌
 
-时间线上有三个清晰的阶段：
+5M 步实验（wd=2.0，截至 3.7M 步）：
 
 ```
-阶段 I   (20k-130k)   外层 stride=2 邻接 ≈ 100%    内层 ≈ 随机
-阶段 II  (140k-400k)  外层崩溃到 0-30%             内层 stride=4 开始上升
-阶段 III (400k-1M)    外层 ≈ 随机                   内层 stride=4 趋势到 0.84
+1M 前:    inner_s4 经常冲到 0.8-0.9
+1M-2M:    inner_s4 仍有高峰，但 0.0 的坑增多
+2M-3M:    inner_s4 均值下降，inner_s1 开始偶尔冲高
+3M-3.7M:  inner_s4 和 inner_s1 交替闪烁，无稳态
 ```
 
-**不是"外层不动、内层涌现"——是外层坍塌后内层取而代之。**
+stride=4 和 stride=1 在争夺内层编码权，模型在各种拓扑之间永久震荡。
+期间 step ~356 万时 test_acc 从 100% 崩溃到 3.4%，之后恢复——WD 在超长训练下会摧毁已学到的结构。
 
-全程测试集准确率 100%。模型在内部表示完全重组的过程中，输出始终正确——忒修斯之船。
+### 4. 2 层 128 维是嵌套 Grokking 的容量下界之下
 
-### 详细数据（wd=2.0，关键时间点）
+这个微型模型能发现单层拓扑（Z₁₂ 或 Z₈ 的子群），但不够同时稳定维持两层嵌套结构。
+要实现真正的嵌套 Grokking（两层拓扑共存且稳定），可能需要更大的模型。
+
+## Weight Decay 相图
+
+```
+wd=1.0  →  没 Grok（89.6%）
+wd=1.5  →  Grok，外层 stride=1 先涌现(20k)，350k 崩溃，内层 stride=4 接管
+wd=2.0  →  Grok，外层 stride=2 先涌现(20k)，140k 崩溃，内层 stride=4 接管
+wd=5.0  →  过度压缩（77.7%）
+```
+
+## 详细数据
+
+### wd=2.0，1M 步（关键时间点）
 
 ```
 step       outer_s2  inner_s4  pca_g  解读
@@ -57,44 +74,57 @@ step       outer_s2  inner_s4  pca_g  解读
  200000    0.083     0.542     13     内层起飞
  400000    0.000     0.604     11
  470000    0.167     0.833     14
- 690000    0.000     0.792     13
  860000    0.000     0.896     12     ← 内层最高点
 1000000    0.083     0.844     15     最终状态（仍在震荡）
 ```
 
-### C.C. 的解读（Gemini 3.0 Pro）
+### wd=1.5，1M 步（关键时间点）
 
-1. **外层为什么会死**：WD=2.0 下，维持两个平行大环的长程权重太贵。模型选择把外层结构"内联"进内层的 stride=4 编码，用同一组权重解决两层逻辑。
+```
+step       outer_s1  inner_s4  解读
+  20000    0.958     0.812     两层同时有信号（罕见）
+  30000    1.000     0.406     外层 stride=1 锁定
+ 100000    0.083     0.688     外层已衰退
+ 270000    0.583     0.906     ← inner_s4 最高点之一
+ 350000    0.042     0.302     ← 外层彻底崩溃
+ 550000    0.000     0.948     ← inner_s4 另一个高峰
+1000000    0.000     0.562     最终状态（震荡剧烈）
+```
 
-2. **为什么是 stride=4 赢了**：4 是 gcd(12,8) 本身。每走 4 步，外层和内层的相位产生一次相干叠加——这是同时捕捉两层相互作用的最短路径，Weight Decay 觉得它最省钱。
+### wd=2.0，5M 步趋势（截至 3.7M 步，仍在运行）
 
-3. **PCA 瞬态骤降到 4-6 维**：step 140k、280k、580k、680k、870k 各出现一次——是流形在寻找新稳定点时的"窄门"，螺旋管结构露头的瞬间。
+inner_s4 没有锁定，也没有被 Z₃ 夺舍。stride=4 和 stride=1 在交替闪烁，模型在永久震荡。
+期间经历了一次完全崩溃（step ~3.56M，test_acc 降至 3.4%）后恢复。
+
+## C.C. 的解读（Gemini 3.0 Pro）
+
+1. **外层为什么会死**：WD 下维持大环的长程权重太贵。模型选择把外层结构"内联"进内层的 stride=4 编码。
+
+2. **为什么是 stride=4 赢了**：4 是 gcd(12,8) 本身。每走 4 步，外层和内层的相位产生一次相干叠加——同时捕捉两层相互作用的最短路径，WD 觉得它最省钱。
+
+3. **PCA 瞬态骤降到 4-6 维**：是流形在寻找新稳定点时的"窄门"，螺旋管结构露头的瞬间。
 
 ## 未解决的问题
 
-1. **最终状态还在震荡**（inner_s4 在 0.0-0.9 之间跳），1M 步没有完全锁定。5M 步会怎样？
-2. **会不会有第三次夺舍？** 96 = 32 × 3，如果 stride=4 的 Z₈ 继续被压缩，下一层可能是 Z₃。
-3. **容量实验**：如果加到 4 层 256 维，两层结构能不能同时稳定？还是竞争是必然的？
+1. **容量实验**：4 层 256 维下，两层拓扑能否同时稳定？
+2. **任务选择**：换一个 gcd=1 的分解（如 mod 91 = 7×13），两层结构是否天然正交、更容易被发现？
+3. **WD 调度**：先用高 WD 逼出结构，再降低 WD 让它稳定，能否避免永久震荡？
 
 ## 跑法
 
 ```bash
-# 三档并行跑（后台）
-sudo docker exec magical_bhabha bash -c "cd /workspace/ai-theorys-study/arxiv/wechat67/exp_group3_nested_grokking/code && nohup python train_nested_grokking.py --wd 1.0 > /tmp/nested_wd1.0.log 2>&1 &"
-sudo docker exec magical_bhabha bash -c "cd /workspace/ai-theorys-study/arxiv/wechat67/exp_group3_nested_grokking/code && nohup python train_nested_grokking.py --wd 2.0 > /tmp/nested_wd2.0.log 2>&1 &"
-sudo docker exec magical_bhabha bash -c "cd /workspace/ai-theorys-study/arxiv/wechat67/exp_group3_nested_grokking/code && nohup python train_nested_grokking.py --wd 5.0 > /tmp/nested_wd5.0.log 2>&1 &"
-```
+# 基本用法
+sudo docker exec magical_bhabha bash -c "cd /workspace/ai-theorys-study/arxiv/wechat67/exp_group3_nested_grokking/code && python train_nested_grokking.py --wd 2.0 --steps 1000000"
 
-```bash
-# 看进度（三档一次看完）
-sudo docker exec magical_bhabha bash -c "echo '=== wd=1.0 ===' && tail -5 /tmp/nested_wd1.0.log && echo && echo '=== wd=2.0 ===' && tail -5 /tmp/nested_wd2.0.log && echo && echo '=== wd=5.0 ===' && tail -5 /tmp/nested_wd5.0.log"
-```
+# 自定义输出目录
+sudo docker exec magical_bhabha bash -c "cd /workspace/ai-theorys-study/arxiv/wechat67/exp_group3_nested_grokking/code && python train_nested_grokking.py --wd 2.0 --steps 5000000 --tag wd2.0_5M"
 
-```bash
-# 跑完后分析
-sudo docker exec magical_bhabha bash -c "cd /workspace/ai-theorys-study/arxiv/wechat67/exp_group3_nested_grokking/code && python analyze_nested_structure.py --wd 1.0"
-sudo docker exec magical_bhabha bash -c "cd /workspace/ai-theorys-study/arxiv/wechat67/exp_group3_nested_grokking/code && python analyze_nested_structure.py --wd 2.0"
-sudo docker exec magical_bhabha bash -c "cd /workspace/ai-theorys-study/arxiv/wechat67/exp_group3_nested_grokking/code && python analyze_nested_structure.py --wd 5.0"
+# 改模型大小
+sudo docker exec magical_bhabha bash -c "cd /workspace/ai-theorys-study/arxiv/wechat67/exp_group3_nested_grokking/code && python train_nested_grokking.py --wd 2.0 --dim 256 --layers 4 --heads 8 --tag big_model"
+
+# 多步长邻接扫描（核心分析工具）
+sudo docker exec magical_bhabha bash -c "cd /workspace/ai-theorys-study/arxiv/wechat67/exp_group3_nested_grokking/code && python scan_strides.py --wd 1.5"
+sudo docker exec magical_bhabha bash -c "cd /workspace/ai-theorys-study/arxiv/wechat67/exp_group3_nested_grokking/code && python scan_strides.py --tag wd2.0_5M"
 ```
 
 ## 目录结构
@@ -103,10 +133,13 @@ sudo docker exec magical_bhabha bash -c "cd /workspace/ai-theorys-study/arxiv/we
 exp_group3_nested_grokking/
 ├── README.md
 ├── code/
-│   ├── train_nested_grokking.py      # 训练（1M步，--wd 控制正则化强度）
-│   └── analyze_nested_structure.py   # 双层邻接分析 + PCA 维度追踪
+│   ├── train_nested_grokking.py      # 训练（--wd --steps --dim --layers --heads --tag）
+│   ├── analyze_nested_structure.py   # 双层邻接分析（stride=1 only，已过时）
+│   └── scan_strides.py              # 多步长邻接扫描（stride=1,2,4，推荐使用）
 └── results/
     ├── wd_1.0/                       # 没完全 Grok（89.6%）
-    ├── wd_2.0/                       # 唯一甜蜜点（100%），观察到拓扑夺舍
+    ├── wd_1.5/                       # 外层 stride=1 先涌现后崩溃，内层 stride=4 接管
+    ├── wd_2.0/                       # 外层 stride=2 先涌现后崩溃，内层 stride=4 接管
+    ├── wd2.0_5M/                     # 5M 步：不收敛，永久震荡
     └── wd_5.0/                       # 过度压缩（77.7%）
 ```

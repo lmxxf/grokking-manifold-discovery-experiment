@@ -21,21 +21,26 @@ from tqdm import tqdm
 
 
 # ============ 配置 ============
-def get_config(weight_decay, seed):
+def get_config(weight_decay, seed, total_steps=1000000, embed_dim=128, num_layers=2, num_heads=4, tag=None):
+    # 输出目录名：默认按 wd 命名，有 tag 则用 tag
+    if tag:
+        dir_name = tag
+    else:
+        dir_name = f"wd_{weight_decay}"
     return {
         "p": 97,                    # 质数，定义模运算 (a * b) mod p
         "train_ratio": 0.3,         # 训练集比例
-        "embed_dim": 128,           # embedding 维度
-        "num_heads": 4,             # attention heads
-        "num_layers": 2,            # transformer 层数
+        "embed_dim": embed_dim,     # embedding 维度
+        "num_heads": num_heads,     # attention heads
+        "num_layers": num_layers,   # transformer 层数
         "lr": 1e-3,                 # 学习率
         "weight_decay": weight_decay,  # 权重衰减
         "batch_size": 512,          # batch size
-        "total_steps": 1000000,     # 总训练步数（1M）
+        "total_steps": total_steps, # 总训练步数
         "eval_every": 5000,         # 每隔多少步评估一次
         "save_activations_every": 10000,  # 每隔多少步保存激活
         "seed": seed,
-        "output_dir": f"/workspace/ai-theorys-study/arxiv/wechat67/exp_group3_nested_grokking/results/wd_{weight_decay}",
+        "output_dir": f"/workspace/ai-theorys-study/arxiv/wechat67/exp_group3_nested_grokking/results/{dir_name}",
         "operation": "multiplication",  # 标记运算类型
     }
 
@@ -294,9 +299,17 @@ def train(config):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Nested Grokking Experiment")
-    parser.add_argument("--wd", type=float, default=2.0, help="Weight decay (1.0, 2.0, or 5.0)")
+    parser.add_argument("--wd", type=float, default=2.0, help="Weight decay")
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
+    parser.add_argument("--steps", type=int, default=1000000, help="Total training steps")
+    parser.add_argument("--dim", type=int, default=128, help="Embedding dimension")
+    parser.add_argument("--layers", type=int, default=2, help="Number of transformer layers")
+    parser.add_argument("--heads", type=int, default=4, help="Number of attention heads")
+    parser.add_argument("--tag", type=str, default=None, help="Custom output directory name (overrides wd-based naming)")
     args = parser.parse_args()
 
-    config = get_config(weight_decay=args.wd, seed=args.seed)
+    config = get_config(
+        weight_decay=args.wd, seed=args.seed, total_steps=args.steps,
+        embed_dim=args.dim, num_layers=args.layers, num_heads=args.heads, tag=args.tag,
+    )
     train(config)

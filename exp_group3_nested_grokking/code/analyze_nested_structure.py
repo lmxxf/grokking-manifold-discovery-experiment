@@ -355,12 +355,14 @@ def main():
     parser = argparse.ArgumentParser(description="Nested Grokking Analysis: Z_12 x Z_8")
     parser.add_argument("--wd", type=str, default="2.0",
                         help="Weight decay value (determines results subdirectory, e.g. 2.0)")
+    parser.add_argument("--tag", type=str, default=None,
+                        help="Custom results subdirectory name (overrides --wd)")
     args = parser.parse_args()
 
     # 路径构建
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    wd_dir_name = f"wd_{args.wd}"
-    results_dir = os.path.join(base_dir, "results", wd_dir_name)
+    dir_name = args.tag if args.tag else f"wd_{args.wd}"
+    results_dir = os.path.join(base_dir, "results", dir_name)
     activations_dir = os.path.join(results_dir, "activations")
     output_dir = os.path.join(results_dir, "nested_analysis")
 
