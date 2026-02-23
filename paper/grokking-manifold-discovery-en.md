@@ -456,7 +456,7 @@ We designed two experimental groups to validate the manifold discovery hypothesi
 | **Persistent homology** | ripser + persim | Point cloud subsample 500 points, Euclidean distance, Vietoris-Rips complex, maxdim=1, persistence threshold 0.1, random_state=42 |
 | **UMAP visualization** | umap-learn | n_neighbors=15, min_dist=0.1, metric='cosine', random_state=42 |
 | **Adjacency analysis** | scipy.spatial.distance | k=2 nearest neighbors on cluster centers, Euclidean distance, cluster center = mean of UMAP embeddings for same-label samples |
-| **Activation extraction** | PyTorch | Last Transformer layer output, average pooling of two tokens, yielding $n \times 128$ matrix |
+| **Activation extraction** | PyTorch | Last Transformer layer output, first token output, yielding $n \times 128$ matrix |
 
 **Notes**:
 - Betti numbers from persistent homology are sensitive to subsample size and threshold; values in tables should be understood as orders of magnitude, not precise values
@@ -508,7 +508,7 @@ Each time accuracy collapsed, L2 norm and standard deviation dropped simultaneou
 |------|----------|---------|-----|-------|
 | 9000 | 100% | 9.9 | 0.88 | Normal |
 | 14000 | 0.8% | **1.79** | **0.16** | **Collapse** |
-| 17000 | 98.6% | 9.7 | 0.87 | Recovery |
+| 17000 | 98.6% | 11.2 | 0.87 | Recovery |
 | 26000 | 1% | **1.88** | **0.17** | **Collapse** |
 | 54000 | 0.5% | **3.65** | **0.33** | **Collapse** |
 
@@ -716,7 +716,7 @@ Section 6.4 found that the modular multiplication model learned $\mathbb{Z}_{12}
 | Layers | 2 | 4 |
 | Hidden dim | 128 | 256 |
 | Attention heads | 4 | 8 |
-| Parameters | ~100K | ~800K |
+| Parameters | ~434K | ~3.2M |
 | Weight decay | 1.0 / 1.5 / 2.0 / 5.0 | 2.0 |
 | Total steps | 1M (some 5M) | 1M |
 
@@ -781,7 +781,7 @@ The stronger the WD, the faster the outer layer dies (350K → 140K), but the fi
 
 #### 6.9.8 Finding 5: Scaling Experiment—Simple Capacity Hypothesis Does Not Hold
 
-If topological possession is due to insufficient capacity, then scaling the model by 8x (4-layer, 256-dim, ~800K parameters) should allow two topological levels to coexist.
+If topological possession is due to insufficient capacity, then scaling the model (4-layer, 256-dim, ~3.2M parameters) should allow two topological levels to coexist.
 
 **Result**: train_acc=56.4%, test_acc=51.75%—**couldn't even fit the training set, let alone Grok.**
 
